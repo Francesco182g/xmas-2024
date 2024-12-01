@@ -22,6 +22,9 @@
       "es2018", 
       "dom"
     ],
+    "types": [
+      "cesium"
+    ],
     "useDefineForClassFields": false
   },
   "angularCompilerOptions": {

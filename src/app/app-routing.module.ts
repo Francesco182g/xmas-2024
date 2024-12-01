@@ -11,6 +11,10 @@ const routes: Routes = [
     redirectTo: 'home',
     pathMatch: 'full'
   },
+  {
+    path: 'cesium-map',
+    loadChildren: () => import('./cesium-map/cesium-map.module').then( m => m.CesiumMapPageModule)
+  },
 ];
 
 @NgModule({
