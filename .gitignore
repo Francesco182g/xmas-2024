@@ -70,3 +70,4 @@ testem.log
 Thumbs.db
 
 src/app/app.component.ts
+src/main.ts
