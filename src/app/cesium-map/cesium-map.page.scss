@@ -1,13 +1,70 @@
-#cesiumContainer
-{
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
+#cesiumContainer {
+  position: relative;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin-bottom: -10px;
+  padding: 0;
+  overflow: hidden;
+}
+
+#title-text {
+  letter-spacing: 0.45px;
+  line-height: 25px;
+  text-transform: uppercase;
+  background: linear-gradient(45deg, #894646 0%, #fff 100%);
+  background-clip: border-box;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+  font-size: 20px;
+  align-content: center;
+}
+
+ion-toolbar {
+  --background: #4e0000;
+  --color: #ffffff;
+  --border-color: #f8f8f8;
+}
+
+/* Footer Styling */
+ion-footer {
+  ion-toolbar {
+    background: #f8f8f8; /* Background color for the toolbar */
+    color: #ffffff;
+    align-items: center;
+  }
+
+  /* Style the timeline slider */
+  .timeline-slider {
+    height: 15px; /* Adjust slider height */
+    margin: 0 10px; /* Add some horizontal spacing */
+  }
+
+  .timeline-slider .range-pin {
+    background: #007aff; /* Pin color */
+  }
+
+  /* Center the buttons */
+  .centered-buttons {
+    display: flex;
+    justify-content: center; /* Center horizontally */
+    align-items: center;     /* Center vertically */
+    gap: 10px;               /* Add spacing between buttons */
+    flex-wrap: wrap;         /* Ensure buttons wrap on smaller screens */
+  }
+
+  /* Footer Buttons */
+  ion-button {
+    flex-grow: 1; /* Evenly distribute button width */
+    flex-basis: 20%; /* Equal space for each button */
+    text-align: center; /* Center align the text */
+    font-size: 12px; /* Adjust font size */
+    
+  }
+
+  ion-icon {
+    font-size: 20px; /* Icon size */
+    margin-bottom: 4px; /* Space between icon and label */
+  }
 }
