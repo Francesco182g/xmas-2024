@@ -11,12 +11,12 @@ export class SettingsService {
 
      private dayImagery = new Cesium.WebMapTileServiceImageryProvider({
           url: 'https://tiles.maps.eox.at/wmts/1.0.0/WMTSCapabilities.xml',
-          layer: 'bluemarble',
+          layer: 's2cloudless-2023',
           style: 'default',
           format: 'image/jpeg',
           tileMatrixSetID: 'WGS84',
           tilingScheme: new Cesium.GeographicTilingScheme(),
-          credit: '<a href="https://maps.eox.at">Blue Marble</a> { &copy; <a href="http://nasa.gov">NASA</a> }',
+          credit: '<a class="a-light" xmlns:dct="http://purl.org/dc/terms/" href="https://s2maps.eu" property="dct:title">Sentinel-2 cloudless 2016</a> by <a class="a-light" xmlns:cc="http://creativecommons.org/ns#" href="https://eox.at" property="cc:attributionName" rel="cc:attributionURL">EOX IT Services GmbH</a> is licensed under a <a class="a-light" rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>. The required attribution including the given links is "<i><a class="a-light" xmlns:dct="http://purl.org/dc/terms/" href="https://s2maps.eu" property="dct:title">Sentinel-2 cloudless - https://s2maps.eu</a> by <a class="a-light" xmlns:cc="http://creativecommons.org/ns#" href="https://eox.at" property="cc:attributionName" rel="cc:attributionURL">EOX IT Services GmbH</a> (Contains modified Copernicus Sentinel data 2016 &amp; 2017)</i>"',
      });
 
      private nightImagery = new Cesium.WebMapTileServiceImageryProvider({
@@ -34,11 +34,11 @@ export class SettingsService {
 
      constructor() { }
 
-     set cesiumViewer(viewer) {
+     set viewer(viewer) {
           this._viewer = viewer;
      }
 
-     get cesiumViewer(): Cesium.Viewer {
+     get viewer(): Cesium.Viewer {
           return this._viewer;
      }
 
@@ -47,113 +47,60 @@ export class SettingsService {
      }
 
      setDynamicLighting() {
-          this.removeAllLayers();
+          this.viewer.scene.globe.enableLighting = true;
+          console.log('setDynamicLighting');
+          //this.removeAllLayers();
           // The rest of the code is for dynamic lighting
           this._dynamicLighting = true;
-          this.cesiumViewer.clock.multiplier = 4000;
+          //this.viewer.clock.multiplier = 4000;
 
-          const imageryLayers = this.cesiumViewer.imageryLayers;
-          imageryLayers.add(this.nightLayer);
-          imageryLayers.add(this.dayLayer);
+          const imageryLayers = this.viewer.imageryLayers;
+          if (!imageryLayers.contains(this.nightLayer)) {
+               console.log('setDynamicLighting - add nightLayer');
+               imageryLayers.add(this.nightLayer);
+          }
+          if (!imageryLayers.contains(this.dayLayer)) {
+               console.log('setDynamicLighting - add dayLayer');
+               imageryLayers.add(this.dayLayer);
+          }
           imageryLayers.lowerToBottom(this.dayLayer);
 
           this.dayLayer.show = this.dynamicLighting;
-          this.cesiumViewer.scene.globe.enableLighting = this.dynamicLighting;
-          //this.cesiumViewer.clock.shouldAnimate = this.dynamicLighting;
+          this.viewer.scene.globe.enableLighting = this.dynamicLighting;
+          this.viewer.clock.shouldAnimate = this.dynamicLighting;
 
           // If dynamic lighting is enabled, make the night imagery invisible
           // on the lit side of the globe.
           this.nightLayer.dayAlpha = this.dynamicLighting ? 0.0 : 1.0;
-
+          console.log('setDynamicLighting');
 
      }
+
+     setStaticLighting() {
+          this._dynamicLighting = false;
+          this.viewer.scene.globe.enableLighting = false;
+          this.viewer.clock.shouldAnimate = true;
+          this.viewer.imageryLayers.lowerToBottom(this.nightLayer);
+
+     }
+
      setNightLayer() {
           this.removeAllLayers();
           this._nightLayer = true;
-          this.cesiumViewer.imageryLayers.add(this.nightLayer);
+          this.viewer.imageryLayers.add(this.nightLayer);
      }
 
      setDayLayer() {
           this.removeAllLayers();
           this._dayLayer = true;
-          this.cesiumViewer.imageryLayers.add(this.dayLayer);
+          this.viewer.imageryLayers.add(this.dayLayer);
      }
-
-     setSnow() {
-          const scene = this.cesiumViewer.scene;
-          scene.globe.depthTestAgainstTerrain = true;
-
-          // snow
-          const snowParticleSize = 12.0;
-          const snowRadius = 100000.0;
-          const minimumSnowImageSize = new Cesium.Cartesian2(
-               snowParticleSize,
-               snowParticleSize,
-          );
-          const maximumSnowImageSize = new Cesium.Cartesian2(
-               snowParticleSize * 2.0,
-               snowParticleSize * 2.0,
-          );
-          let snowGravityScratch = new Cesium.Cartesian3();
-          const snowUpdate = function (particle: any, dt: any) {
-               snowGravityScratch = Cesium.Cartesian3.normalize(
-                    particle.position,
-                    snowGravityScratch,
-               );
-               Cesium.Cartesian3.multiplyByScalar(
-                    snowGravityScratch,
-                    Cesium.Math.randomBetween(-30.0, -300.0),
-                    snowGravityScratch,
-               );
-               particle.velocity = Cesium.Cartesian3.add(
-                    particle.velocity,
-                    snowGravityScratch,
-                    particle.velocity,
-               );
-               const distance = Cesium.Cartesian3.distance(
-                    scene.camera.position,
-                    particle.position,
-               );
-               if (distance > snowRadius) {
-                    particle.endColor.alpha = 0.0;
-               } else {
-                    particle.endColor.alpha = 1.0 / (distance / snowRadius + 0.1);
-               }
-          };
-
-          scene.primitives.removeAll();
-          scene.primitives.add(
-               new Cesium.ParticleSystem({
-                    modelMatrix: Cesium.Matrix4.fromTranslation(scene.camera.position),
-                    minimumSpeed: -1.0,
-                    maximumSpeed: 0.0,
-                    lifetime: 15.0,
-                    emitter: new Cesium.SphereEmitter(snowRadius),
-                    startScale: 0.5,
-                    endScale: 1.0,
-                    image: "../../../assets/snowflake_particle.png",
-                    emissionRate: 1000.0,
-                    startColor: Cesium.Color.WHITE.withAlpha(0.0),
-                    endColor: Cesium.Color.WHITE.withAlpha(1.0),
-                    minimumImageSize: minimumSnowImageSize,
-                    maximumImageSize: maximumSnowImageSize,
-                    updateCallback: snowUpdate,
-               }),
-          );
-
-          scene.skyAtmosphere.hueShift = -0.8;
-          scene.skyAtmosphere.saturationShift = -0.7;
-          scene.skyAtmosphere.brightnessShift = -0.33;
-          scene.fog.density = 0.001;
-          scene.fog.minimumBrightness = 0.8;
-
-     }
-
 
 
 
      removeAllLayers() {
-          this.cesiumViewer.imageryLayers.removeAll();
+          this.viewer.imageryLayers.remove(this.nightLayer);
+          this.viewer.imageryLayers.remove(this.dayLayer);
      }
 
 }
