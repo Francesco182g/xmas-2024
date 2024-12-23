@@ -12,6 +12,8 @@ export class CesiumMapPage implements OnInit {
   santaVillage!: Cesium.Entity;
   santaReference!: Cesium.Plane;
   snow: any;
+  santaEntity: Cesium.Entity | undefined;
+  czmlDataSource: Cesium.CzmlDataSource | undefined;
 
   constructor(private settingsService: SettingsService) {
 
@@ -27,7 +29,7 @@ export class CesiumMapPage implements OnInit {
       shouldAnimate: true,
       navigationHelpButton: true,
       navigationInstructionsInitiallyVisible: false,
-      sceneModePicker: true,
+      sceneModePicker: false,
       selectionIndicator: true,
       animation: false,
       fullscreenButton: false,
@@ -41,6 +43,7 @@ export class CesiumMapPage implements OnInit {
 
     // Set the initial camera view to Rome, Italy
     const viewer = this.viewer;
+    // Remove Columbus View from the Scene Mode Picker
     viewer.homeButton.viewModel.command.beforeExecute.addEventListener(function (commandInfo) {
       viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(12.4964, 41.9028, 10000000.0), // Longitude, Latitude, Height for Rome, Italy
@@ -49,6 +52,12 @@ export class CesiumMapPage implements OnInit {
       commandInfo.cancel = true; // Prevent default behavior
     });
 
+    const scene = viewer.scene;
+    scene.skyAtmosphere.hueShift = -0.8;
+    scene.skyAtmosphere.saturationShift = -0.7;
+    scene.skyAtmosphere.brightnessShift = -0.33;
+    scene.fog.density = 0.001;
+    scene.fog.minimumBrightness = 0.8;
     this.settingsService.viewer = this.viewer;
 
 
@@ -73,7 +82,7 @@ export class CesiumMapPage implements OnInit {
 </div>
 `;
 
-    const url = "assets/models/santahouse.glb";
+    const url = "assets/models/santahouse.gltf";
     this.santaVillage = this.viewer.entities.add({
       name: "Santa House",
       // add info into infobox
@@ -94,24 +103,27 @@ export class CesiumMapPage implements OnInit {
     this.settingsService.setDynamicLighting(value);
   }
 
-
-  enableFreeNavigation() {
-
-  }
-
   showSantaStatus() {
+    if (this.santaEntity) {
+      this.viewer.entities.remove(this.santaEntity);
+    }
     this.dynamicLighting(true);
     this.resetXmas();
-    // set cesium time to current time
-    //this.viewer.clock.currentTime = Cesium.JulianDate.now();
-    // align camera on santa
+    //set cesium to current time
+    this.viewer.clock.currentTime = Cesium.JulianDate.now();
+    //if time machine is 25th December, show santa's journey
+    if (Cesium.JulianDate.now().dayNumber === 359) {
+      this.trackSantaJourney(false);
+    } else {
+      this.showSantaHouse();
+    }
   }
 
   openSettings() {
     throw new Error('Method not implemented.');
   }
 
-  async trackSantaJourney() {
+  async trackSantaJourney(followSanta = true) {
     //const czml = await fetch('assets/santaTest.czml').then((res) => res.json());	// Load the CZML data
     const czml = this.getCZML();
 
@@ -124,74 +136,41 @@ export class CesiumMapPage implements OnInit {
         viewer.dataSources.add(czmlDataSource);
 
         // Access the entity with ID 'path'
-        const entity = czmlDataSource.entities.getById("path");
-
-        // Aggiungi il sistema di particelle
-        const particleSystem = viewer.scene.primitives.add(
-          new Cesium.ParticleSystem({
-            image: "assets/particles/spark.png", // Percorso all'immagine della particella
-            startColor: Cesium.Color.RED.withAlpha(0.7), // Colore iniziale
-            endColor: Cesium.Color.YELLOW.withAlpha(0.0), // Colore finale
-            startScale: 1.0, // Scala iniziale
-            endScale: 3.0, // Scala finale
-            minimumParticleLife: 1.0, // Vita minima della particella
-            maximumParticleLife: 2.0, // Vita massima della particella
-            speed: 5.0, // Velocità delle particelle
-            imageSize: new Cesium.Cartesian2(10, 10), // Dimensione delle particelle
-            emissionRate: 50, // Numero di particelle emesse al secondo
-            emitter: new Cesium.CircleEmitter(5.0), // Tipo di emettitore
-            modelMatrix: Cesium.Transforms.eastNorthUpToFixedFrame(
-              Cesium.Cartesian3.fromDegrees(24.35, 80.00, 4776183.594851127) // Posizione iniziale del modello
-            ),
-            lifetime: 16.0, // Durata del sistema di particelle
-          })
-        );
-
-        // Sincronizza la posizione del sistema di particelle con il modello
-        viewer.scene.preRender.addEventListener(() => {
-          const position = entity!.position!.getValue(Cesium.JulianDate.now());
-          const orientation = entity!.orientation!.getValue(Cesium.JulianDate.now());
-
-          if (position && orientation) {
-            const modelMatrix = Cesium.Matrix4.fromTranslationQuaternionRotationScale(
-              position,
-              Cesium.Quaternion.clone(orientation),
-              new Cesium.Cartesian3(1.0, 1.0, 1.0)
-            );
-            particleSystem.modelMatrix = modelMatrix;
-          } else {
-            console.log('No position or orientation');
-          }
-        });
-
-
+        this.santaEntity = czmlDataSource.entities.getById("path");
 
         // Imposta la camera al lato destro del modello
-        const offset = new Cesium.Cartesian3(100.0, 0.0, 50.0); // Offset destro
+        const offset = new Cesium.Cartesian3(100.0, 100.0, 100.0); // Offset destro
         //viewer.camera.lookAt(entity!.position!.getValue(Cesium.JulianDate.now()) as Cesium.Cartesian3, offset);
 
-        // Set the viewer to track the entity
-        viewer.trackedEntity = entity;
-
-
+        if (followSanta) {
+          viewer.trackedEntity = this.santaEntity;
+        }
+        else {
+          // Set viewer to follow machine time
+          viewer.clock.shouldAnimate = true;
+        }
       })
       .catch((error) => {
         console.error("Error loading CZML data:", error);
       });
 
     viewer.dataSources.add(czmlDataSource);
+    this.czmlDataSource = czmlDataSource;
     //viewer.zoomTo(dataSourcePromise);
 
-
+    //remove datasource
 
 
   }
 
   showSantaHouse() {
+    // untrack santa entity
+    if (this.santaEntity) {
+      this.viewer.trackedEntity = undefined;
+      this.viewer.entities.remove(this.santaEntity);
+      this.santaEntity = undefined;
+    }
     const scene = this.viewer.scene;
-    // Aspetta il caricamento del modello
-    //this.viewer.trackedEntity = this.santaVillage;
-    //Object { longitude: 24.55342053737083, latitude: 80.00416745627538, height: 793.5142170272596, heading: 4.708730554188302, pitch: -0.16755400349311267, roll: 6.283160260312141 }
     const position = Cesium.Cartesian3.fromDegrees(24.55342053737083, 80.00416745627538, 793.5142170272596);
     scene.camera.setView({
       destination: position,
@@ -203,15 +182,11 @@ export class CesiumMapPage implements OnInit {
       },
     });
     this.dynamicLighting(false);
-    scene.skyAtmosphere.hueShift = -0.8;
-    scene.skyAtmosphere.saturationShift = -0.7;
-    scene.skyAtmosphere.brightnessShift = -0.33;
-    scene.fog.density = 0.001;
-    scene.fog.minimumBrightness = 0.8;
 
     this.startSnow();
     //this.santaVillage.show = true;
   }
+
   saveCameraPosition(): void {
     if (this.viewer) {
       const camera = this.viewer.camera;
@@ -224,13 +199,14 @@ export class CesiumMapPage implements OnInit {
         pitch: camera.pitch,
         roll: camera.roll
       };
-      console.log('Posizione salvata:', cameraState);
+      //console.log('Posizione salvata:', cameraState);
     }
   }
 
   resetXmas() {
     //this.santaVillage.show = false;
     this.viewer.scene.primitives.remove(this.snow);
+
   }
 
 
@@ -296,46 +272,81 @@ export class CesiumMapPage implements OnInit {
   }
 
   getCZML() {
+    const interpolatePositions = (positions: any, intervalSeconds: any) => {
+      const interpolated = [];
+      for (let i = 0; i < positions.length - 4; i += 4) {
+        const t0 = positions[i];
+        const lon0 = positions[i + 1];
+        const lat0 = positions[i + 2];
+        const alt0 = positions[i + 3];
+        const t1 = positions[i + 4];
+        const lon1 = positions[i + 5];
+        const lat1 = positions[i + 6];
+        const alt1 = positions[i + 7];
+
+        interpolated.push(t0, lon0, lat0, alt0);
+
+        // Interpolazione lineare per i punti intermedi
+        const steps = Math.ceil((t1 - t0) / intervalSeconds);
+        for (let j = 1; j < steps; j++) {
+          const fraction = j / steps;
+          const t = t0 + fraction * (t1 - t0);
+          const lon = lon0 + fraction * (lon1 - lon0);
+          const lat = lat0 + fraction * (lat1 - lat0);
+          const alt = alt0 + fraction * (alt1 - alt0);
+          interpolated.push(t, lon, lat, alt);
+        }
+      }
+      // Aggiungi l'ultimo punto
+      interpolated.push(...positions.slice(-4));
+      return interpolated;
+    };
+
+    const positions = [
+      0, 174.7633, -36.8485, 200000,  // Auckland
+      3600, 151.2093, -33.8688, 200000,  // Sydney
+      7200, 139.6503, 35.6762, 200000,   // Tokyo
+      10800, 114.1694, 22.3193, 200000,  // Hong Kong
+      14400, 100.5018, 13.7563, 200000,  // Bangkok
+      18000, 77.2090, 28.6139, 200000,   // Delhi
+      21600, 55.2708, 25.2048, 200000,   // Dubai
+      23200, 41.7276039, 44.6416146, 200000,  // Tbilisi
+      25200, 37.6173, 55.7558, 200000,   // Moscow
+      28800, 24.9384, 60.1699, 200000,   // Helsinki
+      25200, 30.5234, 50.4501, 200000,   // Kiev
+      32400, 12.4964, 41.9028, 200000,   // Rome
+      33000, -0.1278, 51.5074, 200000,   // London
+      39600, -43.1729, -22.9068, 200000, // Rio de Janeiro
+      43200, -74.0060, 40.7128, 200000,  // New York
+      46800, -87.6298, 41.8781, 200000,  // Chicago
+      50400, -104.9903, 39.7392, 200000, // Denver
+      54000, -118.2437, 34.0522, 200000, // Los Angeles
+      57600, -149.9003, 61.2181, 200000, // Anchorage
+      61200, -157.8583, 21.3069, 200000  // Honolulu
+    ];
+
+    const interpolatedPositions = interpolatePositions(positions, 600); // Interpola ogni 10 minuti
+
     return [
       {
         id: "document",
         name: "CZML Path",
         version: "1.0",
         clock: {
-          "interval": "2024-12-25T00:00:00Z/2024-12-25T23:59:59Z",
-          "currentTime": "2024-12-25T00:00:00Z",
-          "multiplier": 60
+          interval: "2024-12-25T00:00:00Z/2024-12-25T23:59:59Z",
+          currentTime: "2024-12-25T00:00:00Z",
+          multiplier: 60,
         },
       },
       {
         id: "path",
         name: "Santa's Journey",
-        description:
-          `<div style="font-family: Arial, sans-serif; line-height: 1.5; background-color: rgb(84, 84, 84); padding: 10px; border-radius: 10px;">
-    <h2 style="color:rgb(255, 157, 161); text-align: center;">Santa's Christmas Eve Journey</h2>
-    <div style="text-align: center; margin-bottom: 15px;">
-        <img src="https://cdn.pixabay.com/photo/2019/12/14/11/07/santa-4693082_1280.jpg" alt="Santa's Journey" style="width: 100%; max-width: 300px; border: 2px solid #ccc; border-radius: 10px;">
-    </div>
-    <p>Join Santa on his magical Christmas Eve journey! Every year, Santa travels the globe, delivering joy and presents to children everywhere. From the moment he takes off from the snowy North Pole to his last stop under the starry skies, it’s a night of wonder and festive cheer.</p>
-    <ul>
-        <li><strong>The Sleigh:</strong> A marvel of Christmas engineering, powered by festive magic and guided by Rudolph’s glowing red nose.</li>
-        <li><strong>The Reindeer Team:</strong> Led by Rudolph, the trusted crew of reindeer flies tirelessly through the night.</li>
-        <li><strong>The Sack of Gifts:</strong> An endless bag filled with carefully crafted toys and surprises for kids around the world.</li>
-        <li><strong>Stops Along the Way:</strong> Santa’s sleigh lands quietly on rooftops as he visits homes to leave presents under the tree.</li>
-    </ul>
-    <p>Santa’s journey is not just about delivering gifts—it’s a symbol of kindness, joy, and the spirit of Christmas. Wherever he goes, he leaves a trail of smiles, laughter, and holiday magic.</p>
-    <p style="text-align: center; font-weight: bold;">Be part of the adventure and feel the magic of Santa’s journey come to life! 🎄✨</p>
-</div>`,
-        "availability": "2024-12-25T00:00:00Z/2024-12-25T23:59:59Z",
+        availability: "2024-12-25T00:00:00Z/2024-12-25T23:59:59Z",
         path: {
           material: {
             polylineOutline: {
-              color: {
-                rgba: [255, 0, 255, 255],
-              },
-              outlineColor: {
-                rgba: [0, 255, 255, 255],
-              },
+              color: { rgba: [255, 0, 255, 255] },
+              outlineColor: { rgba: [0, 255, 255, 255] },
               outlineWidth: 1,
             },
           },
@@ -344,42 +355,56 @@ export class CesiumMapPage implements OnInit {
           trailTime: 1000,
           resolution: 20,
         },
-        "model": {
-          "gltf": "assets/models/santatrip.glb",
-          "scale": 20.0,
-          "minimumPixelSize": 128,
-          "maximumScale": 20,
-          "runAnimations": false,
+        model: {
+          gltf: "assets/models/santatrip.gltf",
+          scale: 10.0,
+          minimumPixelSize: 64,
+          maximumScale: 20,
+          runAnimations: false,
         },
         position: {
-          "epoch": "2024-12-25T00:00:00Z",
-          cartographicDegrees: [
-            // Time (Seconds), Lon, Lat, Hei (Meters)
-            0, 174.7633, -36.8485, 200000,  // Auckland
-            3600, 151.2093, -33.8688, 200000,  // Sydney
-            7200, 139.6503, 35.6762, 200000,  // Tokyo
-            10800, 114.1694, 22.3193, 200000,  // Hong Kong
-            14400, 100.5018, 13.7563, 200000,  // Bangkok
-            18000, 77.2090, 28.6139, 200000,  // Delhi
-            21600, 55.2708, 25.2048, 200000,  // Dubai
-            25200, 37.6173, 55.7558, 200000,  // Moscow
-            28800, 24.9384, 60.1699, 200000,  // Helsinki
-            32400, 12.4964, 41.9028, 200000,  // Rome
-            36000, -0.1278, 51.5074, 200000,  // London
-            39600, -43.1729, -22.9068, 200000,  // Rio de Janeiro
-            43200, -74.0060, 40.7128, 200000,  // New York
-            46800, -87.6298, 41.8781, 200000,  // Chicago
-            50400, -104.9903, 39.7392, 200000,  // Denver
-            54000, -118.2437, 34.0522, 200000,  // Los Angeles
-            57600, -149.9003, 61.2181, 200000,  // Anchorage
-            61200, -157.8583, 21.3069, 200000   // Honolulu
-          ],
+          epoch: "2024-12-25T00:00:00Z",
+          cartographicDegrees: interpolatedPositions,
         },
         orientation: {
-          velocityReference: "#position"
+          velocityReference: "#position",
         },
       },
     ];
   }
 
+  debugCoordinates() {
+    // Debug
+    const positions = [
+      Cesium.Cartesian3.fromDegrees(174.7633, -36.8485, 200000),  // Auckland
+      Cesium.Cartesian3.fromDegrees(151.2093, -33.8688, 200000),  // Sydney
+      Cesium.Cartesian3.fromDegrees(139.6503, 35.6762, 200000),   // Tokyo
+      Cesium.Cartesian3.fromDegrees(114.1694, 22.3193, 200000),   // Hong Kong
+      Cesium.Cartesian3.fromDegrees(100.5018, 13.7563, 200000),   // Bangkok
+      Cesium.Cartesian3.fromDegrees(77.2090, 28.6139, 200000),    // Delhi
+      Cesium.Cartesian3.fromDegrees(55.2708, 25.2048, 200000),    // Dubai
+      Cesium.Cartesian3.fromDegrees(28.9784, 41.0082, 200000),    // Istanbul
+      Cesium.Cartesian3.fromDegrees(37.6173, 55.7558, 200000),    // Moscow
+      Cesium.Cartesian3.fromDegrees(24.9384, 60.1699, 200000),    // Helsinki
+      Cesium.Cartesian3.fromDegrees(12.4964, 41.9028, 200000),    // Rome
+      Cesium.Cartesian3.fromDegrees(-0.1278, 51.5074, 200000),    // London
+      Cesium.Cartesian3.fromDegrees(-43.1729, -22.9068, 200000),  // Rio de Janeiro
+      Cesium.Cartesian3.fromDegrees(-74.0060, 40.7128, 200000),   // New York
+      Cesium.Cartesian3.fromDegrees(-87.6298, 41.8781, 200000),   // Chicago
+      Cesium.Cartesian3.fromDegrees(-104.9903, 39.7392, 200000),  // Denver
+      Cesium.Cartesian3.fromDegrees(-118.2437, 34.0522, 200000),  // Los Angeles
+      Cesium.Cartesian3.fromDegrees(-149.9003, 61.2181, 200000),  // Anchorage
+      Cesium.Cartesian3.fromDegrees(-157.8583, 21.3069, 200000)   // Honolulu
+    ];
+
+    // Aggiungi una polilinea che collega i punti
+    // this.viewer.entities.add({
+    //   polyline: {
+    //     positions: positions,
+    //     width: 5,
+    //     material: Cesium.Color.RED,
+    //     clampToGround: false
+    //   }
+    // });
+  }
 }
