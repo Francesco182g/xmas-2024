@@ -3,12 +3,12 @@ import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 
 const routes: Routes = [
   {
-    path: '2024trip',
+    path: '',
     loadChildren: () => import('./cesium-map/cesium-map.module').then( m => m.CesiumMapPageModule)
   },
   {
     path: '',
-    redirectTo: '2024trip',
+    redirectTo: '',
     pathMatch: 'full'
   },
   {
