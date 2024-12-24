@@ -36,10 +36,12 @@ export class CesiumMapPage implements OnInit {
       vrButton: false,
       //terrain: Cesium.Terrain.fromWorldTerrain(),
     });
-    this.viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(12.4964, 41.9028, 10000000.0), // Longitude, Latitude, Height for Rome, Italy
-      duration: 2.0 // Fly to the location in 2 seconds
-    });
+
+    // Set inizial position to Rome
+    // this.viewer.camera.flyTo({
+    //   destination: Cesium.Cartesian3.fromDegrees(12.4964, 41.9028, 10000000.0), // Longitude, Latitude, Height for Rome, Italy
+    //   duration: 2.0 // Fly to the location in 2 seconds
+    // });
 
     // Set the initial camera view to Rome, Italy
     const viewer = this.viewer;
@@ -93,11 +95,14 @@ export class CesiumMapPage implements OnInit {
         scale: 60.0,
       },
     });
+
+    const currentDate = Cesium.JulianDate.toDate(this.viewer.clock.currentTime);
+    const currentMonth = currentDate.getMonth();
+    const currentDay = currentDate.getDate();
+    if (currentMonth === 11 && (currentDay === 24 || currentDay === 25)) {
+      this.trackSantaJourney(false);
+    }
   }
-
-
-
-
 
   dynamicLighting(value: boolean) {
     this.settingsService.setDynamicLighting(value);
@@ -111,8 +116,12 @@ export class CesiumMapPage implements OnInit {
     this.resetXmas();
     //set cesium to current time
     this.viewer.clock.currentTime = Cesium.JulianDate.now();
-    //if time machine is 25th December, show santa's journey
-    if (Cesium.JulianDate.now().dayNumber === 359) {
+    //if time machine is 25th December, show santa's journey\
+    // if is 24 or 25 december show santa's journey
+    const currentDate = Cesium.JulianDate.toDate(this.viewer.clock.currentTime);
+    const currentMonth = currentDate.getMonth();
+    const currentDay = currentDate.getDate();
+    if (currentMonth === 11 && (currentDay === 24 || currentDay === 25)) {
       this.trackSantaJourney(false);
     } else {
       this.showSantaHouse();
@@ -145,10 +154,6 @@ export class CesiumMapPage implements OnInit {
         if (followSanta) {
           viewer.trackedEntity = this.santaEntity;
         }
-        else {
-          // Set viewer to follow machine time
-          viewer.clock.shouldAnimate = true;
-        }
       })
       .catch((error) => {
         console.error("Error loading CZML data:", error);
@@ -156,11 +161,16 @@ export class CesiumMapPage implements OnInit {
 
     viewer.dataSources.add(czmlDataSource);
     this.czmlDataSource = czmlDataSource;
+
     //viewer.zoomTo(dataSourcePromise);
-
+    if (!followSanta) {
+      // Set viewer to follow machine time
+      // set current time to time machine
+      viewer.trackedEntity = this.santaEntity;
+      viewer.clock.currentTime = Cesium.JulianDate.now();
+      viewer.clock.shouldAnimate = true;
+    }
     //remove datasource
-
-
   }
 
   showSantaHouse() {
@@ -303,27 +313,47 @@ export class CesiumMapPage implements OnInit {
     };
 
     const positions = [
-      0, 174.7633, -36.8485, 200000,  // Auckland
-      3600, 151.2093, -33.8688, 200000,  // Sydney
-      7200, 139.6503, 35.6762, 200000,   // Tokyo
-      10800, 114.1694, 22.3193, 200000,  // Hong Kong
-      14400, 100.5018, 13.7563, 200000,  // Bangkok
-      18000, 77.2090, 28.6139, 200000,   // Delhi
-      21600, 55.2708, 25.2048, 200000,   // Dubai
-      23200, 41.7276039, 44.6416146, 200000,  // Tbilisi
-      25200, 37.6173, 55.7558, 200000,   // Moscow
-      28800, 24.9384, 60.1699, 200000,   // Helsinki
-      25200, 30.5234, 50.4501, 200000,   // Kiev
-      32400, 12.4964, 41.9028, 200000,   // Rome
-      33000, -0.1278, 51.5074, 200000,   // London
-      39600, -43.1729, -22.9068, 200000, // Rio de Janeiro
-      43200, -74.0060, 40.7128, 200000,  // New York
-      46800, -87.6298, 41.8781, 200000,  // Chicago
-      50400, -104.9903, 39.7392, 200000, // Denver
-      54000, -118.2437, 34.0522, 200000, // Los Angeles
-      57600, -149.9003, 61.2181, 200000, // Anchorage
-      61200, -157.8583, 21.3069, 200000  // Honolulu
+      0, -157.8583, 21.3069, 200000,  // Honolulu (UTC-10)
+      3600, -149.9003, 61.2181, 200000,  // Anchorage (UTC-9)
+      7200, -118.2437, 34.0522, 200000,  // Los Angeles (UTC-8)
+      10800, -104.9903, 39.7392, 200000,  // Denver (UTC-7)
+      14400, -87.6298, 41.8781, 200000,  // Chicago (UTC-6)
+      18000, -74.0060, 40.7128, 200000,  // New York (UTC-5)
+      21600, -43.1729, -22.9068, 200000,  // Rio de Janeiro (UTC-3)
+      25200, -15.5989, 38.7245, 200000,  // Azores (UTC-1)
+      28800, -0.1278, 51.5074, 200000,  // London (UTC+0)
+      28800, 10.7522, 59.9139, 200000,  // Oslo, Norway (UTC+0)
+      30400, 2.3522, 48.8566, 200000,  // Paris (UTC+1)
+      31400, 12.5683, 55.6761, 200000,  // Copenhagen, Denmark (UTC+1)
+      32000, 12.4964, 41.9028, 200000,  // Rome, Italy (UTC+1)
+      33000, 9.0579, 8.6753, 200000,  // Abuja, Nigeria (UTC+1)
+      33500, 13.4050, 52.5200, 200000,  // Berlin (UTC+2)
+      34000, 16.3738, 48.2082, 200000,  // Vienna, Austria (UTC+2)
+      34500, 31.2357, 30.0444, 200000,  // Cairo, Egypt (UTC+2)
+      36000, 18.4241, -33.9249, 200000,  // Cape Town, South Africa (UTC+2)
+      36000, 39.2083, -6.7924, 200000,  // Dar es Salaam, Tanzania (UTC+3)
+      36000, 28.9784, 41.0082, 200000,  // Istanbul, Turkey (UTC+2)
+      39600, 30.5234, 50.4501, 200000,  // Kiev (UTC+3)
+      39600, 37.9838, 23.7275, 200000,  // Athens, Greece (UTC+3)
+      39600, 3.3792, 6.5244, 200000,    // Lagos, Nigeria (UTC+3)
+      43200, 39.9032599, 32.5979587, 200000,  // Ankara (UTC+4)
+      43200, 44.4268, 26.1025, 200000,  // Bucharest, Romania (UTC+4)
+      46800, 55.2708, 25.2048, 200000,  // Dubai (UTC+5)
+      46800, 61.5240, 55.7558, 200000,  // Moscow, Russia (UTC+5)
+      50400, 77.2090, 28.6139, 200000,  // Delhi (UTC+5:30)
+      50400, 85.3240, 27.7172, 200000,  // Kathmandu, Nepal (UTC+5:45)
+      54000, 100.5018, 13.7563, 200000,  // Bangkok (UTC+7)
+      54000, 106.8650, -6.1751, 200000,  // Jakarta, Indonesia (UTC+7)
+      57600, 114.1694, 22.3193, 200000,  // Hong Kong (UTC+8)
+      57600, 121.4737, 31.2304, 200000,  // Shanghai, China (UTC+8)
+      61200, 139.6503, 35.6762, 200000,  // Tokyo (UTC+9)
+      61200, 126.9780, 37.5665, 200000,  // Seoul, South Korea (UTC+9)
+      64800, 151.2093, -33.8688, 200000,  // Sydney (UTC+10)
+      64800, 145.7753, -16.9186, 200000,  // Cairns, Australia (UTC+10)
+      67400, 174.7633, -36.8485, 200000,  // Auckland (UTC+12)
+      68400, -179.2193, -16.5782, 200000,  // Suva, Fiji (UTC+12)
     ];
+
 
     const interpolatedPositions = interpolatePositions(positions, 600); // Interpola ogni 10 minuti
 
@@ -333,15 +363,15 @@ export class CesiumMapPage implements OnInit {
         name: "CZML Path",
         version: "1.0",
         clock: {
-          interval: "2024-12-25T00:00:00Z/2024-12-25T23:59:59Z",
-          currentTime: "2024-12-25T00:00:00Z",
+          interval: "2024-12-24T13:00:00Z/2024-12-25T13:59:59Z",
+          currentTime: "2024-12-24T13:00:00Z",
           multiplier: 60,
         },
       },
       {
         id: "path",
         name: "Santa's Journey",
-        availability: "2024-12-25T00:00:00Z/2024-12-25T23:59:59Z",
+        availability: "2024-12-24T13:00:00Z/2024-12-25T23:59:59Z",
         path: {
           material: {
             polylineOutline: {
@@ -353,17 +383,17 @@ export class CesiumMapPage implements OnInit {
           width: 7,
           leadTime: 10,
           trailTime: 1000,
-          resolution: 20,
+          resolution: 10,
         },
         model: {
           gltf: "assets/models/santatrip.gltf",
           scale: 10.0,
           minimumPixelSize: 64,
-          maximumScale: 20,
+          maximumScale: 30,
           runAnimations: false,
         },
         position: {
-          epoch: "2024-12-25T00:00:00Z",
+          epoch: "2024-12-24T13:00:00Z",
           cartographicDegrees: interpolatedPositions,
         },
         orientation: {
@@ -372,6 +402,81 @@ export class CesiumMapPage implements OnInit {
       },
     ];
   }
+
+  // [
+  //   {
+  //     "id": "document",
+  //     "name": "CZML Path",
+  //     "version": "1.0",
+  //     "clock": {
+  //       "interval": "2024-12-25T00:00:00Z/2024-12-25T23:59:59Z",
+  //       "currentTime": "2024-12-25T00:00:00Z",
+  //       "multiplier": 60
+  //     }
+  //   },
+  //   {
+  //     "id": "path",
+  //     "name": "Santa's Journey",
+  //     "availability": "2024-12-25T00:00:00Z/2024-12-25T23:59:59Z",
+  //     "path": {
+  //       "material": {
+  //         "polylineOutline": {
+  //           "color": { "rgba": [255, 0, 255, 255] },
+  //           "outlineColor": { "rgba": [0, 255, 255, 255] },
+  //           "outlineWidth": 1
+  //         }
+  //       },
+  //       "width": 7,
+  //       "leadTime": 10,
+  //       "trailTime": 1000,
+  //       "resolution": 20
+  //     },
+  //     "model": {
+  //       "gltf": "assets/models/santatrip.gltf",
+  //       "scale": 10.0,
+  //       "minimumPixelSize": 64,
+  //       "maximumScale": 20,
+  //       "runAnimations": false
+  //     },
+  //     "position": {
+  //       "epoch": "2024-12-25T00:00:00Z",
+  //       "cartographicDegrees": [
+  //         10.0, 45.0, 500.0,
+  //         10.1, 45.1, 500.0,
+  //         10.2, 45.2, 500.0
+  //       ]
+  //     },
+  //     "orientation": {
+  //       "velocityReference": "#position"
+  //     }
+  //   },
+  //   {
+  //     "id": "polyline-offset",
+  //     "name": "Path Offset",
+  //     "availability": "2024-12-25T00:00:00Z/2024-12-25T23:59:59Z",
+  //     "path": {
+  //       "material": {
+  //         "polylineOutline": {
+  //           "color": { "rgba": [255, 0, 255, 255] },
+  //           "outlineColor": { "rgba": [0, 255, 255, 255] },
+  //           "outlineWidth": 1
+  //         }
+  //       },
+  //       "width": 7,
+  //       "leadTime": 10,
+  //       "trailTime": 1000,
+  //       "resolution": 20
+  //     },
+  //     "position": {
+  //       "epoch": "2024-12-25T00:00:00Z",
+  //       "cartographicDegrees": [
+  //         10.0, 45.0, 550.0,
+  //         10.1, 45.1, 550.0,
+  //         10.2, 45.2, 550.0
+  //       ]
+  //     }
+  //   }
+  // ]
 
   debugCoordinates() {
     // Debug
