@@ -64,7 +64,7 @@ export class CesiumMapPage implements OnInit {
 
 
     this.dynamicLighting(true);
-
+    this.setPoint();  
     const position = Cesium.Cartesian3.fromDegrees(24.35, 80.00);
 
     const description = `<div style="font-family: Arial, sans-serif; line-height: 1.5; background-color: rgb(84, 84, 84); padding: 10px; border-radius: 10px;">
@@ -104,11 +104,70 @@ export class CesiumMapPage implements OnInit {
     }
   }
 
+  setPoint() {
+    const viewer = this.viewer;
+    const positions = [
+      [0, -157.8583, 21.3069, 1, "Honolulu (UTC-10)"],
+      [3600, -149.9003, 61.2181, 1, "Anchorage (UTC-9)"],
+      [7200, -118.2437, 34.0522, 1, "Los Angeles (UTC-8)"],
+      [10800, -104.9903, 39.7392, 1, "Denver (UTC-7)"],
+      [14400, -87.6298, 41.8781, 1, "Chicago (UTC-6)"],
+      [18000, -74.0060, 40.7128, 1, "New York (UTC-5)"],
+      [21600, -43.1729, -22.9068, 1, "Rio de Janeiro (UTC-3)"],
+      [25200, -15.5989, 38.7245, 1, "Azores (UTC-1)"],
+      [29000, -0.1278, 51.5074, 1, "London (UTC+0)"],
+      [29500, 10.7522, 59.9139, 1, "Oslo, Norway (UTC+0)"],
+      [30400, 2.3522, 48.8566, 1, "Paris (UTC+1)"],
+      [31400, 12.5683, 55.6761, 1, "Copenhagen, Denmark (UTC+1)"],
+      [32000, 12.4964, 41.9028, 1, "Rome, Italy (UTC+1)"],
+      [33000, 9.0579, 8.6753, 1, "Abuja, Nigeria (UTC+1)"],
+      [33500, 13.4050, 52.5200, 1, "Berlin (UTC+2)"],
+      [33700, 16.3738, 48.2082, 1, "Vienna, Austria (UTC+2)"],
+      [34500, 31.2357, 30.0444, 1, "Cairo, Egypt (UTC+2)"],
+      [35300, 18.4241, -33.9249, 1, "Cape Town, South Africa (UTC+2)"],
+      [36000, 39.2083, -6.7924, 1, "Dar es Salaam, Tanzania (UTC+3)"],
+      [37000, 28.9784, 41.0082, 1, "Istanbul, Turkey (UTC+2)"],
+      [38000, 30.5234, 50.4501, 1, "Kiev (UTC+3)"],
+      [39000, 37.9838, 23.7275, 1, "Athens, Greece (UTC+3)"],
+      [39600, 3.3792, 6.5244, 1, "Lagos, Nigeria (UTC+3)"],
+      [41200, 39.9032599, 32.5979587, 1, "Ankara (UTC+4)"],
+      [43200, 44.4268, 26.1025, 1, "Bucharest, Romania (UTC+4)"],
+      [46800, 55.2708, 25.2048, 1, "Dubai (UTC+5)"],
+      [47000, 61.5240, 55.7558, 1, "Moscow, Russia (UTC+5)"],
+      [48500, 77.2090, 28.6139, 1, "Delhi (UTC+5:30)"],
+      [50400, 85.3240, 27.7172, 1, "Kathmandu, Nepal (UTC+5:45)"],
+      [53000, 100.5018, 13.7563, 1, "Bangkok (UTC+7)"],
+      [56000, 106.8650, -6.1751, 1, "Jakarta, Indonesia (UTC+7)"],
+      [57600, 114.1694, 22.3193, 1, "Hong Kong (UTC+8)"],
+      [59000, 121.4737, 31.2304, 1, "Shanghai, China (UTC+8)"],
+      [61200, 139.6503, 35.6762, 1, "Tokyo (UTC+9)"],
+      [62000, 126.9780, 37.5665, 1, "Seoul, South Korea (UTC+9)"],
+      [64800, 151.2093, -33.8688, 1, "Sydney (UTC+10)"],
+      [65000, 145.7753, -16.9186, 1, "Cairns, Australia (UTC+10)"],
+      [67400, 174.7633, -36.8485, 1, "Auckland (UTC+12)"],
+      [68400, -179.2193, -16.5782, 1, "Suva, Fiji (UTC+12)"],
+    ];
+
+    positions.forEach(([time, lon, lat, alt, name]) => {
+      
+      viewer.entities.add({
+        name: name + " " ,
+        position: Cesium.Cartesian3.fromDegrees(lon as number, lat as number, alt as number),
+        point: { pixelSize: 10, color: Cesium.Color.RED },
+        description: `<div style="color: black;"><h2>${name}</h2><p></p></div>`,
+      });
+    });
+
+    viewer.zoomTo(viewer.entities);
+  }
+
   dynamicLighting(value: boolean) {
     this.settingsService.setDynamicLighting(value);
   }
 
   showSantaStatus() {
+
+
     if (this.santaEntity) {
       this.viewer.entities.remove(this.santaEntity);
     }
