@@ -38,21 +38,21 @@ export class CesiumMapPage implements OnInit {
     });
 
     // Set inizial position to Rome
-    // this.viewer.camera.flyTo({
-    //   destination: Cesium.Cartesian3.fromDegrees(12.4964, 41.9028, 10000000.0), // Longitude, Latitude, Height for Rome, Italy
-    //   duration: 2.0 // Fly to the location in 2 seconds
-    // });
+    this.viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(12.4964, 41.9028, 10000000.0), // Longitude, Latitude, Height for Rome, Italy
+      duration: 2.0 // Fly to the location in 2 seconds
+    });
 
     // Set the initial camera view to Rome, Italy
     const viewer = this.viewer;
     // Remove Columbus View from the Scene Mode Picker
-    viewer.homeButton.viewModel.command.beforeExecute.addEventListener(function (commandInfo) {
-      viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(12.4964, 41.9028, 10000000.0), // Longitude, Latitude, Height for Rome, Italy
-        duration: 2.0 // Fly to the location in 2 seconds
-      });
-      commandInfo.cancel = true; // Prevent default behavior
-    });
+    // viewer.homeButton.viewModel.command.beforeExecute.addEventListener(function (commandInfo) {
+    //   viewer.camera.flyTo({
+    //     destination: Cesium.Cartesian3.fromDegrees(12.4964, 41.9028, 10000000.0), // Longitude, Latitude, Height for Rome, Italy
+    //     duration: 2.0 // Fly to the location in 2 seconds
+    //   });
+    //   commandInfo.cancel = true; // Prevent default behavior
+    // });
 
     const scene = viewer.scene;
     scene.skyAtmosphere.hueShift = -0.8;
@@ -64,7 +64,7 @@ export class CesiumMapPage implements OnInit {
 
 
     this.dynamicLighting(true);
-    this.setPoint();  
+    //this.setPoint();
     const position = Cesium.Cartesian3.fromDegrees(24.35, 80.00);
 
     const description = `<div style="font-family: Arial, sans-serif; line-height: 1.5; background-color: rgb(84, 84, 84); padding: 10px; border-radius: 10px;">
@@ -96,12 +96,37 @@ export class CesiumMapPage implements OnInit {
       },
     });
 
+    // Add Santa model 
+    const santaModelUrl = "assets/models/santatrip.gltf";
+    this.viewer.entities.add({
+      name: "Santa",
+      position: Cesium.Cartesian3.fromDegrees(24.35, 80.013, 0),
+      model: {
+        uri: santaModelUrl,
+        scale: 2.0,
+      },
+    });
+
     const currentDate = Cesium.JulianDate.toDate(this.viewer.clock.currentTime);
-    const currentMonth = currentDate.getMonth();
-    const currentDay = currentDate.getDate();
-    if (currentMonth === 11 && (currentDay === 24 || currentDay === 25)) {
-      this.trackSantaJourney(false);
-    }
+    // const currentMonth = currentDate.getMonth();
+    // const currentDay = currentDate.getDate();
+    // const currentHour = currentDate.getHours();
+    // if (currentMonth === 11 && (currentDay === 24 || (currentDay === 25 && currentHour <12) )) {
+    //   this.trackSantaJourney(false);
+    // }
+
+    viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(12.4964, 41.9028),
+      label: {
+        text: "See you next year!",
+        font: "24px Helvetica",
+        fillColor: Cesium.Color.SKYBLUE,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 2,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+      },
+    });
+
   }
 
   setPoint() {
@@ -149,9 +174,9 @@ export class CesiumMapPage implements OnInit {
     ];
 
     positions.forEach(([time, lon, lat, alt, name]) => {
-      
+
       viewer.entities.add({
-        name: name + " " ,
+        name: name + " ",
         position: Cesium.Cartesian3.fromDegrees(lon as number, lat as number, alt as number),
         point: { pixelSize: 10, color: Cesium.Color.RED },
         description: `<div style="color: black;"><h2>${name}</h2><p></p></div>`,
@@ -173,18 +198,18 @@ export class CesiumMapPage implements OnInit {
     }
     this.dynamicLighting(true);
     this.resetXmas();
-    //set cesium to current time
-    this.viewer.clock.currentTime = Cesium.JulianDate.now();
-    //if time machine is 25th December, show santa's journey\
-    // if is 24 or 25 december show santa's journey
-    const currentDate = Cesium.JulianDate.toDate(this.viewer.clock.currentTime);
-    const currentMonth = currentDate.getMonth();
-    const currentDay = currentDate.getDate();
-    if (currentMonth === 11 && (currentDay === 24 || currentDay === 25)) {
-      this.trackSantaJourney(false);
-    } else {
-      this.showSantaHouse();
-    }
+    // //set cesium to current time
+    // this.viewer.clock.currentTime = Cesium.JulianDate.now();
+    // //if time machine is 25th December, show santa's journey\
+    // // if is 24 or 25 december show santa's journey
+    // const currentDate = Cesium.JulianDate.toDate(this.viewer.clock.currentTime);
+    // const currentMonth = currentDate.getMonth();
+    // const currentDay = currentDate.getDate();
+    // if (currentMonth === 11 && (currentDay === 24 || currentDay === 25)) {
+    //   this.trackSantaJourney(false);
+    // } else {
+    this.showSantaHouse();
+    // }
   }
 
   openSettings() {
@@ -196,15 +221,15 @@ export class CesiumMapPage implements OnInit {
     const czml = this.getCZML();
 
     const viewer = this.viewer;
-    const czmlDataSource = new Cesium.CzmlDataSource();
-    czmlDataSource
+    this.czmlDataSource = new Cesium.CzmlDataSource();
+    this.czmlDataSource
       .load(czml)
       .then(() => {
         // Add the data source to the viewer
-        viewer.dataSources.add(czmlDataSource);
+        viewer.dataSources.add(this.czmlDataSource!);
 
         // Access the entity with ID 'path'
-        this.santaEntity = czmlDataSource.entities.getById("path");
+        this.santaEntity = this.czmlDataSource!.entities.getById("path");
 
         // Imposta la camera al lato destro del modello
         const offset = new Cesium.Cartesian3(100.0, 100.0, 100.0); // Offset destro
@@ -216,23 +241,20 @@ export class CesiumMapPage implements OnInit {
       })
       .catch((error) => {
         console.error("Error loading CZML data:", error);
-      });
-
-    viewer.dataSources.add(czmlDataSource);
-    this.czmlDataSource = czmlDataSource;
-
+      });      
+    viewer.dataSources.add(this.czmlDataSource);
     //viewer.zoomTo(dataSourcePromise);
-    setTimeout(() => {
-      if (!followSanta) {
-        // Set viewer to follow machine time
-        // set current time to time machine
-        console.log('Current time:', Cesium.JulianDate.toDate(viewer.clock.currentTime));
-        viewer.trackedEntity = this.santaEntity;
-        viewer.clock.currentTime = Cesium.JulianDate.now();
+    // setTimeout(() => {
+    //   if (!followSanta) {
+    //     // Set viewer to follow machine time
+    //     // set current time to time machine
+    //     console.log('Current time:', Cesium.JulianDate.toDate(viewer.clock.currentTime));
+    //     viewer.trackedEntity = this.santaEntity;
+    //     viewer.clock.currentTime = Cesium.JulianDate.now();
 
-        viewer.clock.shouldAnimate = true;
-      }
-    }, 4000);
+    //     viewer.clock.shouldAnimate = true;
+    //   }
+    // }, 4000);
     //remove datasource
   }
 
